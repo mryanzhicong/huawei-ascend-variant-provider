@@ -120,3 +120,18 @@ class AscendVariantPlugin:
     @cache
     def get_all_configs(cls, context=None) -> list[VariantFeatureConfig]:
         return cls.get_supported_configs()
+
+
+def main() -> int:
+    """Print detected variant feature configs for quick local validation."""
+    configs = AscendVariantPlugin.get_supported_configs()
+    for config in configs:
+        print(
+            f"{AscendVariantPlugin.namespace} :: {config.name} :: "
+            f"values={config.values}, multi_value={config.multi_value}"
+        )
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
