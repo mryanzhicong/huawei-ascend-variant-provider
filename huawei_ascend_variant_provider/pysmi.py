@@ -40,7 +40,7 @@ _DRIVER_VERSION_REGEX = re.compile(r"Version:"
                                    r"(?:\.(?P<patch>\d+))?"
                                    r"(?:\.rc(?P<rc>\d+))?", re.MULTILINE)
 
-_NPU_TYPE_REGEX = re.compile(r"^\|\s*(?P<index>\d+)\s+(?P<npu>\d+[A-Za-z]+)\d*\s+\|", re.MULTILINE)
+_NPU_TYPE_REGEX = re.compile(r"^\|\s*(?P<index>\d+)\s+(?P<npu>(?:\d+[A-Za-z]+\d*|[A-Za-z]+\d+[A-Za-z0-9]*))\s+\|", re.MULTILINE)
 
 # Currently only have major/minor/patch versions, but might want to add more version identifiers in the future
 @dataclass(frozen=True)
@@ -62,6 +62,20 @@ class DriverVersion:
 class AscendSmiError(Exception):
     def __init__(self, message: str):
         super().__init__(message)
+
+
+def _normalize_npu_type(raw_npu_type: str) -> str:
+    npu_type = raw_npu_type.removeprefix("ascend") or raw_npu_type
+
+    # Product requirement:
+    # - Ascend910 / 910 => 910c
+    # - 910B* (e.g. 910B, 910B3) => 910b
+    if npu_type == "910":
+        return "910c"
+    if npu_type.startswith("910b"):
+        return "910b"
+
+    return npu_type
 
 def get_npu_types() -> List[tuple[int, str]]:
     npu_smi_path = shutil.which("npu-smi")
@@ -86,7 +100,8 @@ def get_npu_types() -> List[tuple[int, str]]:
     for match in _NPU_TYPE_REGEX.finditer(result.stdout):
         if match:
             npu_index = int(match.group("index"))
-            npu_type = match.group("npu").strip().lower()
+            raw_npu_type = match.group("npu").strip().lower()
+            npu_type = _normalize_npu_type(raw_npu_type)
             npu_types.append((npu_index, npu_type))
             logger.info(f"Detected NPU type: index={npu_index}, type={npu_type}")
 
