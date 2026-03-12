@@ -89,10 +89,13 @@ def _normalize_npu_type(raw_npu_type: str) -> str:
     # Product requirement:
     # - Ascend910 / 910 => 910c
     # - 910B* (e.g. 910B, 910B3) => 910b
+    # - 310P* (e.g. 310P, 310P3) => 310p
     if npu_type == "910":
         return "910c"
     if npu_type.startswith("910b"):
         return "910b"
+    if npu_type.startswith("310p"):
+        return "310p"
 
     return npu_type
 
