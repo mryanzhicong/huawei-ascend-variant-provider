@@ -64,11 +64,19 @@ class AscendVariantPlugin:
                 )
             )
         else:
+            detected_npu_types = [npu_type for _, npu_type in (env.npu_types if env else [])]
+            deduplicated_npu_types = list(dict.fromkeys(detected_npu_types))
+            if len(deduplicated_npu_types) > 1:
+                raise RuntimeError(
+                    "Detected multiple Ascend NPU types after deduplication: "
+                    f"{deduplicated_npu_types}. Mixed models are not supported."
+                )
+
             keyconfigs.append(
                 VariantFeatureConfig(
                     name=AscendVariantFeatureKey.NPU_TYPE,
-                    values=[npu_type for _, npu_type in (env.npu_types if env else [])],
-                    multi_value=True
+                    values=deduplicated_npu_types,
+                    multi_value=False
                 )
             )
 
