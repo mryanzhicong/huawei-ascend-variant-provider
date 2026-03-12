@@ -19,8 +19,8 @@ from dataclasses import dataclass
 from functools import lru_cache
 from typing import List, Optional
 
-from huawei_ascend_variant_provider.ascend_probe import CannVersion, DriverVersion
-from huawei_ascend_variant_provider.ascend_probe import get_npu_types, get_driver_version, get_cann_version
+from huawei_ascend_variant_provider.pysmi import CannVersion, DriverVersion
+from huawei_ascend_variant_provider.pysmi import get_npu_types, get_driver_version, get_cann_version
 
 logger = logging.getLogger(__name__)
 

@@ -87,13 +87,13 @@ def _normalize_npu_type(raw_npu_type: str) -> str:
     npu_type = raw_npu_type.removeprefix("ascend") or raw_npu_type
 
     # Product requirement:
-    # - Ascend910 / 910 => 910c
-    # - 910B* (e.g. 910B, 910B3) => 910b
+    # - Ascend910 / 910 => A3
+    # - 910B* (e.g. 910B, 910B3) => A2
     # - 310P* (e.g. 310P, 310P3) => 310p
     if npu_type == "910":
-        return "910c"
+        return "A3"
     if npu_type.startswith("910b"):
-        return "910b"
+        return "A2"
     if npu_type.startswith("310p"):
         return "310p"
 
