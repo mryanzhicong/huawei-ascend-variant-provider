@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from functools import cache
 from typing import Protocol, runtime_checkable
 
-from huawei_ascend_variant_provider.detect_cann import AscendEnvironment
+from huawei_ascend_variant_provider.ascend_environment import AscendEnvironment
 
 
 @runtime_checkable
@@ -65,17 +65,10 @@ class AscendVariantPlugin:
             )
         else:
             detected_npu_types = [npu_type for _, npu_type in (env.npu_types if env else [])]
-            deduplicated_npu_types = list(dict.fromkeys(detected_npu_types))
-            if len(deduplicated_npu_types) > 1:
-                raise RuntimeError(
-                    "Detected multiple Ascend NPU types after deduplication: "
-                    f"{deduplicated_npu_types}. Mixed models are not supported."
-                )
-
             keyconfigs.append(
                 VariantFeatureConfig(
                     name=AscendVariantFeatureKey.NPU_TYPE,
-                    values=deduplicated_npu_types,
+                    values=[detected_npu_types[0]] if detected_npu_types else [],
                     multi_value=False
                 )
             )
