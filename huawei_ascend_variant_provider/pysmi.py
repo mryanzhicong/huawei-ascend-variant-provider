@@ -12,18 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys
 import os
 import re
 import logging
 import shutil
 import subprocess
-from pathlib import Path
-from typing import Optional, Tuple, List, Dict, Any
-from dataclasses import dataclass
 from functools import lru_cache
+from typing import List, Optional
+from dataclasses import dataclass
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
@@ -64,6 +61,28 @@ class AscendSmiError(Exception):
         super().__init__(message)
 
 
+@lru_cache(maxsize=1)
+def _get_npu_smi_info_output() -> str:
+    npu_smi_path = shutil.which("npu-smi")
+    if npu_smi_path is None:
+        raise AscendSmiError("npu-smi command not found in PATH")
+
+    try:
+        result = subprocess.run(
+            ["npu-smi", "info"],
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=10,
+        )
+        return result.stdout
+    except subprocess.TimeoutExpired as exc:
+        raise AscendSmiError("npu-smi info timed out") from exc
+    except subprocess.CalledProcessError as exc:
+        stderr = (exc.stderr or "").strip()
+        raise AscendSmiError(f"npu-smi info failed: {stderr or exc}") from exc
+
+
 def _normalize_npu_type(raw_npu_type: str) -> str:
     npu_type = raw_npu_type.removeprefix("ascend") or raw_npu_type
 
@@ -78,26 +97,10 @@ def _normalize_npu_type(raw_npu_type: str) -> str:
     return npu_type
 
 def get_npu_types() -> List[tuple[int, str]]:
-    npu_smi_path = shutil.which("npu-smi")
-    if npu_smi_path is None:
-        raise AscendSmiError("npu-smi command not found in PATH")
-    try:
-        result = subprocess.run(
-            ["npu-smi", "info"],
-            capture_output=True,
-            text=True,
-            check=True,
-            timeout=10
-        )
-
-    except subprocess.TimeoutExpired as exc:
-        raise AscendSmiError("npu-smi info timed out") from exc
-    except subprocess.CalledProcessError as exc:
-        stderr = (exc.stderr or "").strip()
-        raise AscendSmiError(f"npu-smi info failed: {stderr or exc}") from exc
+    output = _get_npu_smi_info_output()
 
     npu_types: List[tuple[int, str]] = []
-    for match in _NPU_TYPE_REGEX.finditer(result.stdout):
+    for match in _NPU_TYPE_REGEX.finditer(output):
         if match:
             npu_index = int(match.group("index"))
             raw_npu_type = match.group("npu").strip().lower()
@@ -112,25 +115,9 @@ def get_npu_types() -> List[tuple[int, str]]:
     return npu_types
 
 def get_driver_version() -> Optional[DriverVersion]:
-    npu_smi_path = shutil.which("npu-smi")
-    if npu_smi_path is None:
-        raise AscendSmiError("npu-smi command not found in PATH")
-    try:
-        result = subprocess.run(
-            ["npu-smi", "info"],
-            capture_output=True,
-            text=True,
-            check=True,
-            timeout=10
-        )
+    output = _get_npu_smi_info_output()
 
-    except subprocess.TimeoutExpired as exc:
-        raise AscendSmiError("npu-smi info timed out") from exc
-    except subprocess.CalledProcessError as exc:
-        stderr = (exc.stderr or "").strip()
-        raise AscendSmiError(f"npu-smi info failed: {stderr or exc}") from exc
-
-    match = _DRIVER_VERSION_REGEX.search(result.stdout)
+    match = _DRIVER_VERSION_REGEX.search(output)
     if match:
         major = int(match.group("major"))
         minor = int(match.group("minor"))
