@@ -45,7 +45,7 @@ class VariantFeatureConfig:
 
 class AscendVariantFeatureKey:
     NPU_TYPE = "npu_type"
-    DRIVER_VERSION = "driver_version"
+    NPU_DRIVER = "npu_driver"
     CANN_VERSION = "cann_version"
 
 class AscendVariantPlugin:
@@ -76,20 +76,20 @@ class AscendVariantPlugin:
                 )
             )
 
-        driver_version = os.environ.get("ASCEND_VARIANT_PROVIDER_FORCE_DRIVER_VERSION")
-        if driver_version:
+        npu_driver = os.environ.get("ASCEND_VARIANT_PROVIDER_FORCE_NPU_DRIVER")
+        if npu_driver:
             keyconfigs.append(
                 VariantFeatureConfig(
-                    name=AscendVariantFeatureKey.DRIVER_VERSION,
-                    values=[driver_version],
+                    name=AscendVariantFeatureKey.NPU_DRIVER,
+                    values=[npu_driver],
                     multi_value=False
                 )
             )
         else:
             keyconfigs.append(
                 VariantFeatureConfig(
-                    name=AscendVariantFeatureKey.DRIVER_VERSION,
-                    values=[env.driver_version] if env and env.driver_version else [],
+                    name=AscendVariantFeatureKey.NPU_DRIVER,
+                    values=[env.npu_driver] if env and env.npu_driver else [],
                     multi_value=False
                 )
             )

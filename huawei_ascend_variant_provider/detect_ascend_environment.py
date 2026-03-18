@@ -24,7 +24,7 @@ from functools import lru_cache
 from typing import Optional
 
 from huawei_ascend_variant_provider.detect_cann_version import get_cann_version
-from huawei_ascend_variant_provider.detect_npu_driver import get_driver_version
+from huawei_ascend_variant_provider.detect_npu_driver import get_npu_driver
 from huawei_ascend_variant_provider.detect_npu_type import get_npu_type
 
 logger = logging.getLogger(__name__)
@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class AscendEnvironment:
-    driver_version: Optional[str]
+    npu_driver: Optional[str]
     cann_version: Optional[str]
     npu_type: Optional[str]
 
@@ -40,7 +40,7 @@ class AscendEnvironment:
     @lru_cache(maxsize=1)
     def from_system(cls) -> AscendEnvironment | None:
         npu_type: Optional[str] = None
-        driver_version: Optional[str] = None
+        npu_driver: Optional[str] = None
         cann_version: Optional[str] = None
 
         try:
@@ -49,20 +49,20 @@ class AscendEnvironment:
             logger.warning("failed to detect NPU type: %s", e)
 
         try:
-            driver_version = get_driver_version()
+            npu_driver = get_npu_driver()
         except Exception as e:
-            logger.warning("failed to detect driver version: %s", e)
+            logger.warning("failed to detect NPU driver version: %s", e)
 
         try:
             cann_version = get_cann_version()
         except Exception as e:
             logger.warning("failed to detect CANN version: %s", e)
 
-        if npu_type is None and driver_version is None and cann_version is None:
+        if npu_type is None and npu_driver is None and cann_version is None:
             return None
 
         return cls(
-            driver_version=driver_version,
+            npu_driver=npu_driver,
             cann_version=cann_version,
             npu_type=npu_type
         )

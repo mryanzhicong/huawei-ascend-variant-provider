@@ -58,7 +58,7 @@ def _extract_version_triplet(output: str) -> Optional[str]:
     return None
 
 
-def get_driver_version() -> Optional[str]:
+def get_npu_driver() -> Optional[str]:
     try:
         output = _get_npu_smi_version_output()
     except Exception as e:
@@ -74,7 +74,7 @@ def get_driver_version() -> Optional[str]:
 
 def _main() -> int:
     del sys.argv
-    version = get_driver_version()
+    version = get_npu_driver()
     if version is None:
         return 1
     print(version)
