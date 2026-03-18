@@ -24,7 +24,7 @@ from functools import lru_cache
 from typing import Optional
 
 from huawei_ascend_variant_provider.detect_cann_version import get_cann_version
-from huawei_ascend_variant_provider.detect_driver_version import get_driver_version
+from huawei_ascend_variant_provider.detect_npu_driver import get_driver_version
 from huawei_ascend_variant_provider.detect_npu_type import get_npu_type
 
 logger = logging.getLogger(__name__)
