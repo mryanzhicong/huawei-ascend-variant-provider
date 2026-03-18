@@ -21,30 +21,27 @@ from __future__ import annotations
 import logging
 import os
 import platform
-import re
 import sys
-from dataclasses import dataclass
 from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-_CANN_VERSION_REGEX = re.compile(r"version="
-                                 r"(?P<major>\d+)"
-                                 r"\.(?P<minor>\d+)"
-                                 r"(?:\.(?P<patch>\d+))?"
-                                 r"(?:\.RC(?P<rc>\d+))?"
-                                 r"(?:\.(?P<stage>alpha|beta)(?P<stage_ver>\d+))?", re.MULTILINE)
+
+def _extract_cann_version_triplet(content: str) -> Optional[str]:
+    for line in content.splitlines():
+        text = line.strip()
+        if not text.lower().startswith("version="):
+            continue
+
+        raw_version = text.split("=", 1)[1].strip()
+        parts = raw_version.split(".")
+        if len(parts) < 3:
+            return None
+        return ".".join(parts[:3])
+    return None
 
 
-@dataclass(frozen=True)
-class CannVersion:
-    major: int = 0
-    minor: int = 0
-    patch: Optional[int] = None
-    rc: Optional[int] = None
-
-
-def get_cann_version() -> Optional[CannVersion]:
+def get_cann_version() -> Optional[str]:
     cann_path = os.environ.get("ASCEND_TOOLKIT_HOME")
     if cann_path is None:
         logger.warning("ASCEND_TOOLKIT_HOME environment variable not set")
@@ -58,25 +55,12 @@ def get_cann_version() -> Optional[CannVersion]:
 
     with open(version_file, "r", encoding="utf-8") as f:
         content = f.read()
-    match = _CANN_VERSION_REGEX.search(content)
-    if not match:
+
+    version = _extract_cann_version_triplet(content)
+    if version is None:
         logger.warning("unable to parse CANN version from version file")
         return None
-
-    major = int(match.group("major"))
-    minor = int(match.group("minor"))
-    patch = int(match.group("patch")) if match.group("patch") is not None else None
-    rc = int(match.group("rc")) if match.group("rc") is not None else None
-    return CannVersion(major=major, minor=minor, patch=patch, rc=rc)
-
-
-def _format_cann_version(version: CannVersion) -> str:
-    text = f"{version.major}.{version.minor}"
-    if version.patch is not None:
-        text += f".{version.patch}"
-    if version.rc is not None:
-        text += f".RC{version.rc}"
-    return text
+    return version
 
 
 def _main() -> int:
@@ -84,7 +68,7 @@ def _main() -> int:
     version = get_cann_version()
     if version is None:
         return 1
-    print(_format_cann_version(version))
+    print(version)
     return 0
 
 

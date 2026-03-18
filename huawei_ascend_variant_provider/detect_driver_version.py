@@ -19,41 +19,22 @@
 from __future__ import annotations
 
 import logging
-import re
 import shutil
 import subprocess
 import sys
-from dataclasses import dataclass
 from functools import lru_cache
 from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-_DRIVER_VERSION_REGEX = re.compile(r"Version:"
-                                   r"\s*(?P<major>\d+)"
-                                   r"\.(?P<minor>\d+)"
-                                   r"(?:\.(?P<patch>\d+))?"
-                                   r"(?:\.rc(?P<rc>\d+))?", re.MULTILINE)
-
-
-@dataclass(frozen=True)
-class DriverVersion:
-    major: int = 0
-    minor: int = 0
-    patch: Optional[int] = None
-    rc: Optional[int] = None
-    stage: Optional[str] = None
-    stage_ver: Optional[int] = None
-
-
 @lru_cache(maxsize=1)
-def _get_npu_smi_info_output() -> str:
+def _get_npu_smi_version_output() -> str:
     npu_smi_path = shutil.which("npu-smi")
     if npu_smi_path is None:
         raise RuntimeError("npu-smi command not found in PATH")
 
     result = subprocess.run(
-        ["npu-smi", "info"],
+        ["npu-smi", "-v"],
         capture_output=True,
         text=True,
         check=True,
@@ -62,32 +43,33 @@ def _get_npu_smi_info_output() -> str:
     return result.stdout
 
 
-def get_driver_version() -> Optional[DriverVersion]:
+def _extract_version_triplet(output: str) -> Optional[str]:
+    for line in output.splitlines():
+        text = line.strip()
+        if not text.lower().startswith("npu-smi version:"):
+            continue
+
+        raw_version = text.split(":", 1)[1].strip()
+        parts = raw_version.split(".")
+        if len(parts) < 3:
+            return None
+
+        return ".".join(parts[:3])
+    return None
+
+
+def get_driver_version() -> Optional[str]:
     try:
-        output = _get_npu_smi_info_output()
+        output = _get_npu_smi_version_output()
     except Exception as e:
-        logger.warning("failed to get npu-smi info for driver version: %s", e)
+        logger.warning("failed to get npu-smi -v output for driver version: %s", e)
         return None
 
-    match = _DRIVER_VERSION_REGEX.search(output)
-    if not match:
-        logger.warning("unable to parse driver version from npu-smi output")
+    version = _extract_version_triplet(output)
+    if version is None:
+        logger.warning("unable to parse driver version from npu-smi -v output")
         return None
-
-    major = int(match.group("major"))
-    minor = int(match.group("minor"))
-    patch = int(match.group("patch")) if match.group("patch") is not None else None
-    rc = int(match.group("rc")) if match.group("rc") is not None else None
-    return DriverVersion(major=major, minor=minor, patch=patch, rc=rc)
-
-
-def _format_driver_version(version: DriverVersion) -> str:
-    text = f"{version.major}.{version.minor}"
-    if version.patch is not None:
-        text += f".{version.patch}"
-    if version.rc is not None:
-        text += f".rc{version.rc}"
-    return text
+    return version
 
 
 def _main() -> int:
@@ -95,7 +77,7 @@ def _main() -> int:
     version = get_driver_version()
     if version is None:
         return 1
-    print(_format_driver_version(version))
+    print(version)
     return 0
 
 

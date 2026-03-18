@@ -151,44 +151,15 @@ def get_ascend_device_type() -> str:
 
 
 @lru_cache(maxsize=1)
-def probe_soc_name() -> str:
-    """Lightweight probe API for plugin use. Returns empty string on failure."""
-    try:
-        return detect_soc_name()
-    except Exception:
-        return ""
-
-
-@lru_cache(maxsize=1)
-def probe_soc_version(default: int = int(SocVersion.UnsupportedSocVersion)) -> int:
-    """Lightweight probe API for plugin use. Returns default on failure."""
-    soc_name = probe_soc_name()
-    if not soc_name:
-        return int(default)
-    return int(SOC_NAME_TO_VERSION.get(soc_name, default))
-
-
-@lru_cache(maxsize=1)
-def probe_ascend_device_type(default: str = "") -> str:
-    """Lightweight probe API for plugin use. Returns default on failure."""
-    soc_version = probe_soc_version()
-    device_type = _map_soc_version_to_device_type(soc_version)
-    return device_type or default
-
-
-@lru_cache(maxsize=1)
-def get_npu_types() -> List[tuple[int, str]]:
-    """Unified NPU type API used by environment detection."""
-    npu_type = probe_ascend_device_type(default="")
-    if not npu_type:
-        return []
-    return [(0, npu_type)]
+def get_npu_type() -> str:
+    return get_ascend_device_type()
 
 
 def _main() -> int:
     del sys.argv
-    device_type = probe_ascend_device_type(default="")
-    if not device_type:
+    try:
+        device_type = get_npu_type()
+    except Exception:
         return 1
     print(device_type)
     return 0
