@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
+#!/usr/bin/env python3
+
+
 from __future__ import annotations
 
 import os
@@ -19,7 +23,7 @@ from dataclasses import dataclass
 from functools import cache
 from typing import Protocol, runtime_checkable
 
-from huawei_ascend_variant_provider.detect_cann import AscendEnvironment
+from huawei_ascend_variant_provider.detect_ascend_environment import AscendEnvironment
 
 
 @runtime_checkable
@@ -41,7 +45,7 @@ class VariantFeatureConfig:
 
 class AscendVariantFeatureKey:
     NPU_TYPE = "npu_type"
-    DRIVER_VERSION = "driver_version"
+    NPU_DRIVER = "npu_driver"
     CANN_VERSION = "cann_version"
 
 class AscendVariantPlugin:
@@ -64,32 +68,28 @@ class AscendVariantPlugin:
                 )
             )
         else:
-            detected_npu_types = [npu_type for _, npu_type in (env.npu_types if env else [])]
             keyconfigs.append(
                 VariantFeatureConfig(
                     name=AscendVariantFeatureKey.NPU_TYPE,
-                    values=[detected_npu_types[0]] if detected_npu_types else [],
+                    values=[env.npu_type] if env and env.npu_type else [],
                     multi_value=False
                 )
             )
 
-        driver_version = os.environ.get("ASCEND_VARIANT_PROVIDER_FORCE_DRIVER_VERSION")
-        if driver_version:
+        npu_driver = os.environ.get("ASCEND_VARIANT_PROVIDER_FORCE_NPU_DRIVER")
+        if npu_driver:
             keyconfigs.append(
                 VariantFeatureConfig(
-                    name=AscendVariantFeatureKey.DRIVER_VERSION,
-                    values=[driver_version],
+                    name=AscendVariantFeatureKey.NPU_DRIVER,
+                    values=[npu_driver],
                     multi_value=False
                 )
             )
         else:
             keyconfigs.append(
                 VariantFeatureConfig(
-                    name=AscendVariantFeatureKey.DRIVER_VERSION,
-                    values=[f"{env.driver_version.major}.{env.driver_version.minor}" + 
-                                (f".{env.driver_version.patch}" if env.driver_version and env.driver_version.patch is not None else "") + 
-                                (f".rc{env.driver_version.rc}" if env.driver_version and env.driver_version.rc is not None else "")] 
-                                if env and env.driver_version else [],
+                    name=AscendVariantFeatureKey.NPU_DRIVER,
+                    values=[env.npu_driver] if env and env.npu_driver else [],
                     multi_value=False
                 )
             )
@@ -107,13 +107,11 @@ class AscendVariantPlugin:
             keyconfigs.append(
                 VariantFeatureConfig(
                     name=AscendVariantFeatureKey.CANN_VERSION,
-                    values=[f"{env.cann_version.major}.{env.cann_version.minor}" + 
-                                (f".{env.cann_version.patch}" if env.cann_version and env.cann_version.patch is not None else "") + 
-                                (f".rc{env.cann_version.rc}" if env.cann_version and env.cann_version.rc is not None else "")] 
-                                if env and env.cann_version else [],
+                    values=[env.cann_version] if env and env.cann_version else [],
                     multi_value=False
                 )
             )
+        
         
         return keyconfigs
 
